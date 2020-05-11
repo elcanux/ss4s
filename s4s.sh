@@ -6,7 +6,7 @@ LOCKFILE=${0%.*}".pid"
 CONFIG=${1:-"s4s.conf.yml"}
 ROTATE=1
 # 1 day max age
-MAXAGE=$((60*60*20))
+MAXAGE=$((60*60*24))
 
 if [ -r $LOCKFILE ] && read PID <$LOCKFILE &&  ps -p $PID; then
     echo "Found same process lock-file. Is another instance still running?"
@@ -70,12 +70,18 @@ for i in `seq 1 $HOSTSNo`; do
     eval EXCLUDES=\$conf_host${i}_excl
     eval ALIAS=\$conf_host${i}_alias
     eval RRSYNC=\$conf_host${i}_rsync
+    eval ENABLE=\$conf_host${i}_enable
 
     [ -z "$HOST" ] && { ERRORS+="ERROR: Host number mismach, check config"; }
     if [ -z "$RRSYNC" ]; then
         REMOTE_RSYNC=$conf_global_rsyncRemote
     else
         REMOTE_RSYNC=$RRSYNC;
+    fi
+
+    if [ "$ENABLE" == 0 ]; then
+        echo "napshotting $HOST is disabled";
+        continue;
     fi
 
     echo "Snapshotting $HOST, dirs: $DIRS"
@@ -103,6 +109,7 @@ for i in `seq 1 $HOSTSNo`; do
     else
         echo "Found unfinished snapshot... continue"
     fi
+
     for DIR in $DIRS; do
         echo "-- Snapshotting $DIR"
         RES=$( $LOCAL_RSYNC -ahR --rsync-path=$REMOTE_RSYNC --stats $CMDEXCLUDE \
@@ -111,7 +118,7 @@ for i in `seq 1 $HOSTSNo`; do
         [ $? -eq 0 ] || { echo $RES; ERROR=1;
                           ERRORS+="ERROR on host $HOST: $RES";                  
                           echo "ERROR, trying next DIR"; continue; }
-        echo $RES
+        echo "$RES \n"
     done
 
     if [ $ERROR -gt 0 ]; then
