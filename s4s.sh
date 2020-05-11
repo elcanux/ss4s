@@ -106,6 +106,10 @@ for i in `seq 1 $HOSTSNo`; do
     echo "CNDEXCLUDE=$CMDEXCLUDE"
     if [ ! -d $DEST/$HOST/rsync.part ]; then
         mkdir -p $DEST/$HOST/rsync.part;
+	if [ $? -ne 0 ] ; then
+	    echo "Fail to create directory " . $DEST/$HOST/rsync.part
+	    exit 1
+	fi
     else
         echo "Found unfinished snapshot... continue"
     fi
